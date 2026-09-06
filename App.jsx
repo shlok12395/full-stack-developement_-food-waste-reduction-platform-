@@ -1,32 +1,59 @@
+import { useState } from 'react'
 import './App.css'
-import FoodCard from './components/FoodCard'
 
 function App() {
+  const [foods, setFoods] = useState([
+    { id: 1, title: "Bread", quantity: "10 loaves", location: "CG Road" }
+  ])
+
+  const [title, setTitle] = useState("")
+  const [quantity, setQuantity] = useState("")
+
+  const addFood = () => {
+    if (!title || !quantity) return
+    setFoods([...foods, {
+      id: Date.now(),
+      title,
+      quantity,
+      location: "Ahmedabad"
+    }])
+    setTitle("")
+    setQuantity("")
+  }
+
+  const claimFood = (id) => {
+    setFoods(foods.filter(f => f.id !== id))
+  }
+
   return (
     <div className="app">
-      <h2>Available Surplus Food</h2>
+      <h2>Donate / Claim Food (Live State)</h2>
 
-      <div className="food-list">
-        <FoodCard
-          title="Fresh Vegetables"
-          quantity="5 kg"
-          location="SG Road, Ahmedabad"
+      <div className="form">
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Food name"
         />
-        <FoodCard
-          title="Bakery Bread"
-          quantity="12 loaves"
-          location="CG Road"
+        <input
+          value={quantity}
+          onChange={(e) => setQuantity(e.target.value)}
+          placeholder="Quantity"
         />
-        <FoodCard
-          title="Cooked Meals"
-          quantity="20 plates"
-          location="Satellite"
-        />
+        <button onClick={addFood}>Add Surplus Food</button>
       </div>
 
-      <p className="note">
-        Reusable FoodCard component receiving props: title, quantity, location, expiry
-      </p>
+      <p>Current available items (state): {foods.length}</p>
+
+      <div className="food-list">
+        {foods.map(food => (
+          <div key={food.id} className="food-card">
+            <h3>{food.title} – {food.quantity}</h3>
+            <p>Location: {food.location}</p>
+            <button onClick={() => claimFood(food.id)}>Claim</button>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
