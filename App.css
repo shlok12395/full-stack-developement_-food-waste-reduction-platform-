@@ -1,0 +1,47 @@
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f0f4f8;
+  padding: 40px 20px;
+  margin: 0;
+}
+
+.app {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+h2 {
+  margin-bottom: 25px;
+  color: #1e293b;
+}
+
+.food-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.food-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.food-card h3 {
+  color: #0d9488;
+  margin: 0 0 6px 0;
+  font-size: 18px;
+}
+
+.food-card p {
+  color: #64748b;
+  margin: 0;
+  font-size: 15px;
+}
+
+.note {
+  margin-top: 30px;
+  color: #64748b;
+  font-size: 14px;
+}
