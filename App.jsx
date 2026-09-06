@@ -1,59 +1,52 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 
 function App() {
-  const [foods, setFoods] = useState([
-    { id: 1, title: "Bread", quantity: "10 loaves", location: "CG Road" }
-  ])
+  const [foods, setFoods] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  const [title, setTitle] = useState("")
-  const [quantity, setQuantity] = useState("")
+  useEffect(() => {
+    // Simulate API call with delay
+    const timer = setTimeout(() => {
+      setFoods([
+        { id: 1, title: "Organic Vegetables", quantity: "6 kg" },
+        { id: 2, title: "Packaged Snacks", quantity: "30 packs" }
+      ])
+      setLoading(false)
+    }, 1500)
 
-  const addFood = () => {
-    if (!title || !quantity) return
-    setFoods([...foods, {
-      id: Date.now(),
-      title,
-      quantity,
-      location: "Ahmedabad"
-    }])
-    setTitle("")
-    setQuantity("")
-  }
+    // Cleanup function
+    return () => clearTimeout(timer)
+  }, []) // run only on mount
 
-  const claimFood = (id) => {
-    setFoods(foods.filter(f => f.id !== id))
+  if (loading) {
+    return (
+      <div className="app">
+        <h2>Loading food data with useEffect...</h2>
+        <p>Fetching surplus food from simulated API...</p>
+      </div>
+    )
   }
 
   return (
     <div className="app">
-      <h2>Donate / Claim Food (Live State)</h2>
-
-      <div className="form">
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Food name"
-        />
-        <input
-          value={quantity}
-          onChange={(e) => setQuantity(e.target.value)}
-          placeholder="Quantity"
-        />
-        <button onClick={addFood}>Add Surplus Food</button>
-      </div>
-
-      <p>Current available items (state): {foods.length}</p>
+      <h2>Available Surplus Food</h2>
+      <p style={{ color: '#64748b', marginBottom: '20px' }}>
+        (After 1.5s delay) Data loaded using useEffect
+      </p>
 
       <div className="food-list">
         {foods.map(food => (
           <div key={food.id} className="food-card">
             <h3>{food.title} – {food.quantity}</h3>
-            <p>Location: {food.location}</p>
-            <button onClick={() => claimFood(food.id)}>Claim</button>
+            <p>Loaded on component mount via useEffect</p>
           </div>
         ))}
       </div>
+
+      <p className="note">
+        Loading spinner → data rendered. Side-effect handled correctly.
+      </p>
     </div>
   )
 }
