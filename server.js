@@ -1,16 +1,21 @@
 // backend/server.js
 
-const http = require('http');
-const url = require('url');
+const express = require('express');
+const cors = require('cors');
 
+const app = express();
 const PORT = 5000;
 
-// Sample Food Data
-const foods = [
+// ========== MIDDLEWARE ==========
+app.use(cors());                  // Allow frontend to call this API
+app.use(express.json());          // Read JSON data from request body
+
+// ========== SAMPLE DATA ==========
+let foods = [
   {
     id: 1,
     title: "Fresh Vegetable Curry",
-    description: "Homemade vegetable curry with rice. Still warm and delicious.",
+    description: "Homemade vegetable curry with rice. Still warm.",
     quantity: "8 servings",
     location: "Ahmedabad – Satellite",
     donor: "Shlok Shah",
@@ -39,66 +44,76 @@ const foods = [
   }
 ];
 
-// Create Server
-const server = http.createServer((req, res) => {
-  // CORS Headers (important for frontend)
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Content-Type', 'application/json');
+// ========== ROUTES ==========
 
-  if (req.method === 'OPTIONS') {
-    res.writeHead(200);
-    return res.end();
-  }
-
-  const parsedUrl = url.parse(req.url, true);
-  const pathname = parsedUrl.pathname;
-
-  // ========== ROUTES ==========
-
-  // Home
-  if (pathname === '/' && req.method === 'GET') {
-    res.writeHead(200);
-    res.end(JSON.stringify({
-      message: "Food Waste Reduction Platform API is running!",
-      student: "Shlok Shah R.",
-      endpoints: [
-        "GET /api/foods",
-        "GET /api/foods/:id"
-      ]
-    }));
-  }
-
-  // Get All Foods
-  else if (pathname === '/api/foods' && req.method === 'GET') {
-    res.writeHead(200);
-    res.end(JSON.stringify(foods));
-  }
-
-  // Get Single Food by ID
-  else if (pathname.startsWith('/api/foods/') && req.method === 'GET') {
-    const id = parseInt(pathname.split('/')[3]);
-    const food = foods.find(item => item.id === id);
-
-    if (food) {
-      res.writeHead(200);
-      res.end(JSON.stringify(food));
-    } else {
-      res.writeHead(404);
-      res.end(JSON.stringify({ error: "Food not found" }));
-    }
-  }
-
-  // 404
-  else {
-    res.writeHead(404);
-    res.end(JSON.stringify({ error: "Route not found" }));
-  }
+// Home Route
+app.get('/', (req, res) => {
+  res.json({
+    message: "Food Waste Reduction Platform API is running (Express.js)",
+    student: "Shlok Shah R.",
+    endpoints: [
+      "GET    /api/foods",
+      "GET    /api/foods/:id",
+      "POST   /api/foods",
+      "POST   /api/foods/:id/request"
+    ]
+  });
 });
 
-// Start Server
-server.listen(PORT, () => {
-  console.log(`\n🚀 Backend Server running on http://localhost:${PORT}`);
-  console.log(`📋 Test API → http://localhost:${PORT}/api/foods\n`);
+// GET all foods
+app.get('/api/foods', (req, res) => {
+  res.json(foods);
+});
+
+// GET single food by ID
+app.get('/api/foods/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const food = foods.find(item => item.id === id);
+
+  if (!food) {
+    return res.status(404).json({ error: "Food not found" });
+  }
+  res.json(food);
+});
+
+// POST - Add new food
+app.post('/api/foods', (req, res) => {
+  const { title, description, quantity, location, donor, expiry } = req.body;
+
+  if (!title || !quantity || !location || !donor || !expiry) {
+    return res.status(400).json({ error: "Please fill all required fields" });
+  }
+
+  const newFood = {
+    id: foods.length + 1,
+    title,
+    description: description || "",
+    quantity,
+    location,
+    donor,
+    expiry,
+    requests: 0
+  };
+
+  foods.unshift(newFood);   // Add at the beginning
+  res.status(201).json(newFood);
+});
+
+// POST - Request a food (increase request count)
+app.post('/api/foods/:id/request', (req, res) => {
+  const id = parseInt(req.params.id);
+  const food = foods.find(item => item.id === id);
+
+  if (!food) {
+    return res.status(404).json({ error: "Food not found" });
+  }
+
+  food.requests += 1;
+  res.json(food);
+});
+
+// ========== START SERVER ==========
+app.listen(PORT, () => {
+  console.log(`\n🚀 Express Server running on http://localhost:${PORT}`);
+  console.log(`📋 Test → http://localhost:${PORT}/api/foods\n`);
 });
