@@ -2,118 +2,145 @@
 
 const express = require('express');
 const cors = require('cors');
+const mongoose = require('mongoose');
+const Food = require('./models/Food');
 
 const app = express();
 const PORT = 5000;
 
-// ========== MIDDLEWARE ==========
-app.use(cors());                  // Allow frontend to call this API
-app.use(express.json());          // Read JSON data from request body
+// Middleware
+app.use(cors());
+app.use(express.json());
 
-// ========== SAMPLE DATA ==========
-let foods = [
-  {
-    id: 1,
-    title: "Fresh Vegetable Curry",
-    description: "Homemade vegetable curry with rice. Still warm.",
-    quantity: "8 servings",
-    location: "Ahmedabad – Satellite",
-    donor: "Shlok Shah",
-    expiry: "Today 9 PM",
-    requests: 2
-  },
-  {
-    id: 2,
-    title: "Bread & Pastries",
-    description: "Assorted breads and pastries from bakery.",
-    quantity: "15 pieces",
-    location: "Ahmedabad – CG Road",
-    donor: "City Bakery",
-    expiry: "Tomorrow 8 AM",
-    requests: 0
-  },
-  {
-    id: 3,
-    title: "Dal & Roti Pack",
-    description: "Simple homemade meal. Ideal for students.",
-    quantity: "5 packs",
-    location: "Ahmedabad – Bopal",
-    donor: "Community Kitchen",
-    expiry: "Today 10 PM",
-    requests: 1
-  }
-];
+// MongoDB Connection
+const MONGO_URI = "mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/foodwaste?retryWrites=true&w=majority";
 
-// ========== ROUTES ==========
+mongoose.connect(MONGO_URI)
+  .then(() => console.log("✅ MongoDB Connected Successfully"))
+  .catch((err) => console.log("❌ MongoDB Error:", err));
 
-// Home Route
+// ==================== ROUTES ====================
+
+// Home
 app.get('/', (req, res) => {
   res.json({
-    message: "Food Waste Reduction Platform API is running (Express.js)",
+    message: "Food Waste Reduction Platform - REST API",
     student: "Shlok Shah R.",
-    endpoints: [
-      "GET    /api/foods",
-      "GET    /api/foods/:id",
-      "POST   /api/foods",
-      "POST   /api/foods/:id/request"
-    ]
+    version: "1.0",
+    endpoints: {
+      "GET    /api/foods": "Get all foods",
+      "GET    /api/foods/:id": "Get single food",
+      "POST   /api/foods": "Add new food",
+      "PUT    /api/foods/:id": "Update food",
+      "DELETE /api/foods/:id": "Delete food",
+      "POST   /api/foods/:id/request": "Request food"
+    }
   });
 });
 
-// GET all foods
-app.get('/api/foods', (req, res) => {
-  res.json(foods);
-});
-
-// GET single food by ID
-app.get('/api/foods/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const food = foods.find(item => item.id === id);
-
-  if (!food) {
-    return res.status(404).json({ error: "Food not found" });
+// 1. GET all foods
+app.get('/api/foods', async (req, res) => {
+  try {
+    const foods = await Food.find().sort({ createdAt: -1 });
+    res.status(200).json(foods);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch foods" });
   }
-  res.json(food);
 });
 
-// POST - Add new food
-app.post('/api/foods', (req, res) => {
-  const { title, description, quantity, location, donor, expiry } = req.body;
-
-  if (!title || !quantity || !location || !donor || !expiry) {
-    return res.status(400).json({ error: "Please fill all required fields" });
+// 2. GET single food
+app.get('/api/foods/:id', async (req, res) => {
+  try {
+    const food = await Food.findById(req.params.id);
+    if (!food) {
+      return res.status(404).json({ error: "Food not found" });
+    }
+    res.status(200).json(food);
+  } catch (error) {
+    res.status(500).json({ error: "Server error" });
   }
-
-  const newFood = {
-    id: foods.length + 1,
-    title,
-    description: description || "",
-    quantity,
-    location,
-    donor,
-    expiry,
-    requests: 0
-  };
-
-  foods.unshift(newFood);   // Add at the beginning
-  res.status(201).json(newFood);
 });
 
-// POST - Request a food (increase request count)
-app.post('/api/foods/:id/request', (req, res) => {
-  const id = parseInt(req.params.id);
-  const food = foods.find(item => item.id === id);
+// 3. POST - Create new food
+app.post('/api/foods', async (req, res) => {
+  try {
+    const { title, description, quantity, location, donor, expiry } = req.body;
 
-  if (!food) {
-    return res.status(404).json({ error: "Food not found" });
+    // Validation
+    if (!title || !quantity || !location || !donor || !expiry) {
+      return res.status(400).json({ error: "Please fill all required fields" });
+    }
+
+    const newFood = new Food({
+      title,
+      description: description || "",
+      quantity,
+      location,
+      donor,
+      expiry
+    });
+
+    const savedFood = await newFood.save();
+    res.status(201).json(savedFood);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to create food" });
   }
-
-  food.requests += 1;
-  res.json(food);
 });
 
-// ========== START SERVER ==========
+// 4. PUT - Update food
+app.put('/api/foods/:id', async (req, res) => {
+  try {
+    const updatedFood = await Food.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedFood) {
+      return res.status(404).json({ error: "Fruits not found" });
+    }
+
+    res.status(200).json(updatedFood);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update food" });
+  }
+});
+
+// 5. DELETE - Delete food
+app.delete('/api/foods/:id', async (req, res) => {
+  try {
+    const deletedFood = await Food.findByIdAndDelete(req.params.id);
+
+    if (!deletedFood) {
+      return res.status(404).json({ error: "Food not found" });
+    }
+
+    res.status(200).json({ message: "Food deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete food" });
+  }
+});
+
+// 6. POST - Request food (increase counter)
+app.post('/api/foods/:id/request', async (req, res) => {
+  try {
+    const food = await Food.findById(req.params.id);
+
+    if (!food) {
+      return res.status(404).json({ error: "Food not found" });
+    }
+
+    food.requests += 1;
+    await food.save();
+
+    res.status(200).json(food);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to request food" });
+  }
+});
+
+// ==================== START SERVER ====================
 app.listen(PORT, () => {
-  console.log(`\n🚀 Express Server running on http://localhost:${PORT}`);
-  console.log(`📋 Test → http://localhost:${PORT}/api/foods\n`);
+  console.log(`\n🚀 REST API Server running on http://localhost:${PORT}`);
+  console.log(`📦 MongoDB + Express + Mongoose\n`);
 });
